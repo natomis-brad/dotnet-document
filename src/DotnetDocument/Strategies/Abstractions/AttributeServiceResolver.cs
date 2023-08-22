@@ -30,13 +30,13 @@ namespace DotnetDocument.Strategies.Abstractions
         /// <returns>The service</returns>
         public TService? Resolve(string key)
         {
-            var logger = _provider
+            ILogger<AttributeServiceResolver<TService>> logger = _provider
                 .GetRequiredService<ILoggerFactory>()
                 .CreateLogger<AttributeServiceResolver<TService>>();
 
             logger.LogTrace("Resolving service {Type} with key {Key}", typeof(TService), key);
 
-            var service = _provider
+            TService? service = _provider
                 .GetServices<TService>()
                 .FirstOrDefault(s => s!
                     .GetType()
@@ -45,11 +45,15 @@ namespace DotnetDocument.Strategies.Abstractions
                     .Any(a => a.Key == key));
 
             if (service is null)
+            {
                 logger.LogWarning("No {ServiceType} implementation resolved matching {KeyType} key: '{Key}'",
                     typeof(TService).Name, key.GetType().Name, key);
+            }
             else
+            {
                 logger.LogTrace("Resolved implementation of {ServiceType} with key '{Key}': {ImplementationType}",
                     typeof(TService).Name, key, service.GetType().Name);
+            }
 
             return service;
         }

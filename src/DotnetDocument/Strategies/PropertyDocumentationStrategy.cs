@@ -59,25 +59,29 @@ namespace DotnetDocument.Strategies
         public override PropertyDeclarationSyntax Apply(PropertyDeclarationSyntax node)
         {
             // Retrieve constructor name
-            var propertyName = node.Identifier.Text;
+            string propertyName = node.Identifier.Text;
 
             // Humanize the constructor name
-            var humanizedPropertyName = propertyName.Humanize().ToLower();
+            string humanizedPropertyName = propertyName.Humanize().ToLower();
 
-            var accessorsDescription = "";
+            string? accessorsDescription = "";
 
-            var accessors = node.AccessorList?.Accessors
+            List<string>? accessors = node.AccessorList?.Accessors
                 .Select(a => _formatter.ConjugateThirdPersonSingular(a.Keyword.Text))
                 .ToList();
 
             if (accessors is not null && accessors.Any())
+            {
                 accessorsDescription = string.Join(" or ", accessors)
                     .ToLower()
                     .Humanize();
+            }
             else
+            {
                 accessorsDescription = _formatter.ConjugateThirdPersonSingular("Get");
+            }
 
-            var summary = new List<string>
+            List<string> summary = new List<string>
             {
                 // Declare the summary by using the template from configuration
                 _options.Summary.Template

@@ -19,12 +19,12 @@ namespace DotnetDocument.Syntax
         /// <returns>The syntax trivia</returns>
         public static SyntaxTrivia GetIndentationTrivia(SyntaxNode node)
         {
-            var leadingTrivia = node
+            SyntaxTriviaList leadingTrivia = node
                 .GetLeadingTrivia();
 
             try
             {
-                var indentationTrivia = leadingTrivia
+                SyntaxTrivia indentationTrivia = leadingTrivia
                     .Last();
 
                 return indentationTrivia;
@@ -46,10 +46,10 @@ namespace DotnetDocument.Syntax
         /// <returns>The indentation trivia</returns>
         public static SyntaxTrivia GetIndentationElement(SyntaxNode node)
         {
-            var leadingTrivia = node
+            SyntaxTriviaList leadingTrivia = node
                 .GetLeadingTrivia();
 
-            var indentationTrivia = leadingTrivia
+            SyntaxTrivia indentationTrivia = leadingTrivia
                 .LastOrDefault();
 
             return indentationTrivia;
@@ -81,14 +81,14 @@ namespace DotnetDocument.Syntax
         /// <returns>The descendant identifier</returns>
         public static string FindMemberIdentifier(SyntaxNode node)
         {
-            var directNodeIdentifier = node
+            string? directNodeIdentifier = node
                 .ChildTokens()
-                .FirstOrDefault(t => t.Kind() == SyntaxKind.IdentifierToken)
+                .FirstOrDefault(t => t.IsKind(SyntaxKind.IdentifierToken))
                 .Text;
 
             if (!string.IsNullOrWhiteSpace(directNodeIdentifier)) return directNodeIdentifier;
 
-            var descendantIdentifier = node
+            string? descendantIdentifier = node
                 .DescendantTokens()
                 .LastOrDefault(t => t.Kind() == SyntaxKind.IdentifierToken)
                 .Text;
@@ -104,8 +104,10 @@ namespace DotnetDocument.Syntax
         public static IEnumerable<string> ExtractBaseTypes(ClassDeclarationSyntax classDeclarationSyntax)
         {
             if (classDeclarationSyntax.BaseList is not null)
+            {
                 return classDeclarationSyntax.BaseList.Types
                     .Select(t => t.Type.ToString().Replace("<", "{").Replace(">", "}").Trim());
+            }
 
             return new List<string>();
         }
@@ -121,7 +123,7 @@ namespace DotnetDocument.Syntax
             {
                 if (classDeclarationSyntax.TypeParameterList != null)
                 {
-                    var typeParams = string.Join(",", classDeclarationSyntax.TypeParameterList.Parameters.Select(x => x.Identifier.Text));
+                    string typeParams = string.Join(",", classDeclarationSyntax.TypeParameterList.Parameters.Select(x => x.Identifier.Text));
                     return $"{constructorDeclarationSyntax.Identifier.Text}{{{typeParams}}}";
                 }
             }
@@ -137,8 +139,10 @@ namespace DotnetDocument.Syntax
         public static IEnumerable<string> ExtractBaseTypes(InterfaceDeclarationSyntax interfaceDeclarationSyntax)
         {
             if (interfaceDeclarationSyntax.BaseList is not null)
+            {
                 return interfaceDeclarationSyntax.BaseList.Types
                     .Select(t => t.Type.ToString().Replace("<", "{").Replace(">", "}").Trim());
+            }
 
             return new List<string>();
         }
@@ -150,8 +154,8 @@ namespace DotnetDocument.Syntax
         /// <returns>The string type string message</returns>
         public static (string type, string message) ExtractExceptionFromExpression(ExpressionSyntax throwExpression)
         {
-            var type = string.Empty;
-            var message = string.Empty;
+            string type = string.Empty;
+            string message = string.Empty;
 
             // Check if the throw statement is object creation
             // For example: throw new Exception("Something went wrong");
@@ -166,14 +170,14 @@ namespace DotnetDocument.Syntax
             if (string.IsNullOrWhiteSpace(type)) return (type, message);
 
             // Try to extract the parameters of the exception ctor
-            var exceptionArgExpressions = exceptionInitSyntax.ArgumentList?.Arguments
+            IEnumerable<ExpressionSyntax>? exceptionArgExpressions = exceptionInitSyntax.ArgumentList?.Arguments
                 .Select(a => a.Expression);
 
             if (exceptionArgExpressions is null) return (type, message);
 
-            foreach (var argExpression in exceptionArgExpressions)
+            foreach (ExpressionSyntax argExpression in exceptionArgExpressions)
             {
-                var partialMessage = string.Empty;
+                string partialMessage = string.Empty;
 
                 switch (argExpression)
                 {
@@ -185,7 +189,7 @@ namespace DotnetDocument.Syntax
 
                     // throw new Exception($"This {var} is wrong");
                     case InterpolatedStringExpressionSyntax interpolated:
-                        var contents = interpolated.Contents.Select(c => c.ToFullString());
+                        IEnumerable<string> contents = interpolated.Contents.Select(c => c.ToFullString());
                         partialMessage = string.Join(string.Empty, contents);
 
                         break;
@@ -208,25 +212,25 @@ namespace DotnetDocument.Syntax
         public static IEnumerable<(string type, string message)> ExtractThrownExceptions(BlockSyntax body)
         {
             // Get all of the descendant nodes of each body statement
-            var descendantNodes = body.Statements
+            List<SyntaxNode> descendantNodes = body.Statements
                 .SelectMany(s => s.DescendantNodesAndSelf())
                 .ToList();
 
             // Find expressions of throw statements in block body
-            var throwStatements = descendantNodes
+            IEnumerable<ExpressionSyntax> throwStatements = descendantNodes
                 .OfType<ThrowStatementSyntax>()
                 .Where(e => e.Expression is not null)
                 .Select(e => e.Expression!);
 
             // Find throw expressions which are not root level throw statements
-            var throwExpressions = descendantNodes
+            IEnumerable<ExpressionSyntax> throwExpressions = descendantNodes
                 .OfType<ThrowExpressionSyntax>()
                 .Select(e => e.Expression);
 
             // Iterate over all of the expressions
-            foreach (var throwExpression in throwStatements.Concat(throwExpressions))
+            foreach (ExpressionSyntax throwExpression in throwStatements.Concat(throwExpressions))
             {
-                var exception = ExtractExceptionFromExpression(throwExpression);
+                (string type, string message) exception = ExtractExceptionFromExpression(throwExpression);
 
                 if (!string.IsNullOrWhiteSpace(exception.type)) yield return exception;
             }
@@ -273,11 +277,16 @@ namespace DotnetDocument.Syntax
         /// <returns>An enumerable of string</returns>
         public static IEnumerable<string> ExtractReturnStatements(BlockSyntax body)
         {
-            if (body is null) yield break;
+            if (body is null)
+            {
+                yield break;
+            }
 
-            foreach (var returnStatement in body.Statements.OfType<ReturnStatementSyntax>())
+            foreach (ReturnStatementSyntax returnStatement in body.Statements.OfType<ReturnStatementSyntax>())
+            {
                 if (returnStatement.Expression is IdentifierNameSyntax identifierName)
                     yield return identifierName.Identifier.Text;
+            }
         }
 
         /// <summary>
@@ -289,11 +298,11 @@ namespace DotnetDocument.Syntax
         public static TSyntaxNode Parse<TSyntaxNode>(string codeText) where TSyntaxNode : SyntaxNode
         {
             // Declare a new CSharp syntax tree by parsing the program text
-            var tree = CSharpSyntaxTree.ParseText(codeText,
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(codeText,
                 new CSharpParseOptions(documentationMode: DocumentationMode.Parse));
 
             // Get the compilation unit root
-            var root = tree.GetCompilationUnitRoot();
+            CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
 
             // Find the first syntax node matching the specified type
             return root.Members.First()

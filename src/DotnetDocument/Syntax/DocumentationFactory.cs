@@ -33,29 +33,29 @@ namespace DotnetDocument.Syntax
         public static XmlElementSyntax Summary(IEnumerable<string> summaryLines, SyntaxToken xmlIndentedNewLine,
             bool keepSameLine)
         {
-            var xmlSummaryLines = new List<XmlNodeSyntax>();
+            List<XmlNodeSyntax> xmlSummaryLines = new List<XmlNodeSyntax>();
 
             xmlSummaryLines.Add(SyntaxFactory
                 .XmlText(SyntaxFactory.TokenList(xmlIndentedNewLine)));
 
-            foreach (var summaryLine in summaryLines)
+            foreach (string summaryLine in summaryLines)
             {
                 if (summaryLine.Contains("<<") && summaryLine.Contains(">>"))
                 {
                     // Get class name
-                    var className = summaryLine.SubstringBetween("<<", ">>");
+                    string className = summaryLine.SubstringBetween("<<", ">>");
 
                     if (!string.IsNullOrWhiteSpace(className))
                     {
-                        var beforeToken = summaryLine.Split("<<").FirstOrDefault() ?? string.Empty;
-                        var afterToken = summaryLine.Split(">>").LastOrDefault() ?? string.Empty;
+                        string beforeToken = summaryLine.Split("<<").FirstOrDefault() ?? string.Empty;
+                        string afterToken = summaryLine.Split(">>").LastOrDefault() ?? string.Empty;
 
-                        var seeElement = See(className);
+                        XmlEmptyElementSyntax seeElement = See(className);
 
-                        var beforeSeeElement = SyntaxFactory
+                        XmlTextSyntax beforeSeeElement = SyntaxFactory
                             .XmlText(SyntaxFactory.TokenList(SyntaxFactory.XmlTextLiteral(beforeToken)));
 
-                        var afterSeeElement = SyntaxFactory
+                        XmlTextSyntax afterSeeElement = SyntaxFactory
                             .XmlText(SyntaxFactory.TokenList(SyntaxFactory.XmlTextLiteral(afterToken)));
 
                         xmlSummaryLines.Add(beforeSeeElement);
@@ -136,19 +136,19 @@ namespace DotnetDocument.Syntax
         public static XmlElementSyntax TypeParam(string type, string description)
         {
             // Declare type params
-            var attributeList = SyntaxFactory.List<XmlAttributeSyntax>()
+            SyntaxList<XmlAttributeSyntax> attributeList = SyntaxFactory.List<XmlAttributeSyntax>()
                 .Add(SyntaxFactory
                     .XmlNameAttribute(SyntaxFactory.XmlName(" name"),
                         SyntaxFactory.Token(SyntaxKind.DoubleQuoteToken),
                         SyntaxFactory.IdentifierName(type),
                         SyntaxFactory.Token(SyntaxKind.DoubleQuoteToken)));
 
-            var startTag = SyntaxFactory.XmlElementStartTag(SyntaxFactory.XmlName("typeparam"))
+            XmlElementStartTagSyntax startTag = SyntaxFactory.XmlElementStartTag(SyntaxFactory.XmlName("typeparam"))
                 .WithAttributes(attributeList);
 
-            var descriptionXml = new SyntaxList<XmlNodeSyntax>(SyntaxFactory.XmlText(description));
+            SyntaxList<XmlNodeSyntax> descriptionXml = new SyntaxList<XmlNodeSyntax>(SyntaxFactory.XmlText(description));
 
-            var endTag = SyntaxFactory.XmlElementEndTag(SyntaxFactory
+            XmlElementEndTagSyntax endTag = SyntaxFactory.XmlElementEndTag(SyntaxFactory
                 .XmlName("typeparam"));
 
             // Declare type param
@@ -176,7 +176,7 @@ namespace DotnetDocument.Syntax
             List<XmlElementSyntax>? exceptions = null,
             XmlElementSyntax? returns = null)
         {
-            var list = new List<XmlNodeSyntax>
+            List<XmlNodeSyntax> list = new List<XmlNodeSyntax>
             {
                 summary
             };

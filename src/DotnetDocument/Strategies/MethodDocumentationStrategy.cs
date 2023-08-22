@@ -60,21 +60,22 @@ namespace DotnetDocument.Strategies
         public override MethodDeclarationSyntax Apply(MethodDeclarationSyntax node)
         {
             // Get the doc builder for this node
-            var builder = GetDocumentationBuilder()
+            DocumentationBuilder<MethodDeclarationSyntax> builder = GetDocumentationBuilder()
                 .For(node);
 
             // Extract method name
-            var methodName = node.Identifier.Text;
+            string methodName = node.Identifier.Text;
 
             // Extract return type
-            var returnType = node.ReturnType.ToString();
+            string returnType = node.ReturnType.ToString();
 
             if (returnType != "void" && returnType != "Task")
             {
                 // Default returns description is empty
-                var returns = string.Empty;
+                string? returns = string.Empty;
 
                 if (node.Body is not null)
+                {
                     // Extract the last return statement which returns a variable
                     // and humanize the name of the variable which will be used as
                     // returns descriptions. Empty otherwise.
@@ -83,6 +84,7 @@ namespace DotnetDocument.Strategies
                         .Select(r => _formatter
                             .FormatName(_options.Returns.Template, (TemplateKeys.Name, r)))
                         .LastOrDefault();
+                }
 
                 // TODO: Handle case where node.ExpressionBody is not null
 
@@ -96,20 +98,20 @@ namespace DotnetDocument.Strategies
             }
 
             // Extract type params and generate a description
-            var typeParams = SyntaxUtils
+            IEnumerable<(string p, string)> typeParams = SyntaxUtils
                 .ExtractTypeParams(node.TypeParameterList)
                 .Select(p => (p, _formatter
                     .FormatName(_options.TypeParameters.Template, (TemplateKeys.Name, p))));
 
             // Extract params and generate a description
-            var @params = SyntaxUtils
+            List<(string p, string)> @params = SyntaxUtils
                 .ExtractParams(node.ParameterList)
                 .Select(p => (p, _formatter
                     .FormatName(_options.Parameters.Template, (TemplateKeys.Name, p))))
                 .ToList();
 
             // Retrieve method attributes like [Theory], [Fact]
-            var attributes = node.AttributeLists
+            IEnumerable<string> attributes = node.AttributeLists
                 .SelectMany(a => a.Attributes)
                 .Select(a => a.Name
                     .ToString()
@@ -117,10 +119,10 @@ namespace DotnetDocument.Strategies
                     .Replace("]", string.Empty));
 
             // Retrieve method modifiers like static, public, protected, async
-            var modifiers = node.Modifiers.Select(m => m.ToString());
+            IEnumerable<string> modifiers = node.Modifiers.Select(m => m.ToString());
 
             // Format the summary for this method
-            var summary = _formatter.FormatMethod(
+            string summary = _formatter.FormatMethod(
                 methodName, returnType, modifiers, @params.Select(p => p.p), attributes);
 
             builder.WithSummary(summary);
@@ -129,7 +131,7 @@ namespace DotnetDocument.Strategies
             // need to be included in the summary of the method 
             if (_options.Summary.IncludeComments)
             {
-                var blockComments = SyntaxUtils.ExtractBlockComments(node.Body);
+                IEnumerable<string> blockComments = SyntaxUtils.ExtractBlockComments(node.Body);
 
                 builder.WithSummary(blockComments);
             }
@@ -140,7 +142,7 @@ namespace DotnetDocument.Strategies
                 if (node.Body is not null)
                 {
                     // Extract exceptions from body
-                    var extractedExceptions = SyntaxUtils.ExtractThrownExceptions(node.Body).ToList();
+                    List<(string type, string message)> extractedExceptions = SyntaxUtils.ExtractThrownExceptions(node.Body).ToList();
 
                     // Sort them
                     extractedExceptions.Sort((p, n) => string.CompareOrdinal(p.type, n.type));
