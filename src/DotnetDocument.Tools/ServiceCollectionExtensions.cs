@@ -9,7 +9,7 @@ using DotnetDocument.Tools.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
-namespace DotnetDocument.Tools
+namespace DotnetDocument.ToolsF
 {
     /// <summary>
     /// The service collection extensions class

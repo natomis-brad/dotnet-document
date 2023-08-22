@@ -8,6 +8,7 @@ using DotnetDocument.Tools.CLI;
 using DotnetDocument.Tools.Config;
 using DotnetDocument.Tools.Handlers;
 using DotnetDocument.Tools.Utils;
+using DotnetDocument.ToolsF;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
